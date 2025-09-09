@@ -19,15 +19,16 @@ Database: Firebase Firestore
 How to Run the Project Locally
 1. Clone the Repository
 First, clone this repository to your local machine using the following command:
-
-```git clone https://github.com/Shyamsunder24/codehub.git```
-```cd codehub```
-
+```
+git clone https://github.com/Shyamsunder24/codehub.git
+cd codehub
+```
 2. Set Up the Backend
 Navigate to the coding_tracker_backend folder and install the necessary dependencies:
-
-```cd codehub_backend```
-```npm install express dotenv axios cors cheerio firebase-admin uuid```
+```
+cd codehub_backend
+npm install express dotenv axios cors cheerio firebase-admin uuid
+```
 
 Next, you'll need to set up your Firebase project. This is crucial for the application to work.
 
@@ -39,12 +40,16 @@ Open the server.js file and replace the placeholder serviceAccount object with t
 
 Once the credentials are in place, you can start the backend server:
 
-```node server.js```
+```
+node server.js
+```
 
 3. Set Up the Frontend
 Open a new terminal and navigate back to the root of your project:
 
-```cd ..```
+```
+cd ..
+```
 
 In your Firebase Console, navigate to Project settings > General.
 
