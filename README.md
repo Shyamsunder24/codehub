@@ -20,7 +20,7 @@ How to Run the Project Locally
 1. Clone the Repository
 First, clone this repository to your local machine using the following command:
 
-```git clone [https://github.com/YOUR_GITHUB_USERNAME/YOUR_REPOSITORY_NAME.git](https://github.com/YOUR_GITHUB_USERNAME/YOUR_REPOSITORY_NAME.git)```
+```git clone https://github.com/Shyamsunder24/codehub.git```
 ```cd YOUR_REPOSITORY_NAME```
 
 2. Set Up the Backend
