@@ -21,12 +21,12 @@ How to Run the Project Locally
 First, clone this repository to your local machine using the following command:
 
 ```git clone https://github.com/Shyamsunder24/codehub.git```
-```cd YOUR_REPOSITORY_NAME```
+```cd codehub```
 
 2. Set Up the Backend
 Navigate to the coding_tracker_backend folder and install the necessary dependencies:
 
-```cd coding_tracker_backend```
+```cd codehub_backend```
 ```npm install express dotenv axios cors cheerio firebase-admin uuid```
 
 Next, you'll need to set up your Firebase project. This is crucial for the application to work.
