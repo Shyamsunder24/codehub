@@ -250,9 +250,23 @@
 
           let statsHtml = "";
 
-          if (profile.data) {
-            if (profile.platform.toLowerCase() === "spoj") {
+          // Show a spinner if data is still loading
+          if (!profile.data || profile.data.status === "Failed") {
+            statsHtml = `
+                        <div class="flex-1 flex justify-center items-center">
+                            <div class="spinner"></div>
+                        </div>
+                    `;
+            // Add a status message for "Failed" status
+            if (profile.data && profile.data.status === "Failed") {
               statsHtml = `
+                <div class="flex-1 text-center">
+                    <div class="text-sm text-red-400">Failed to fetch data.</div>
+                </div>
+              `;
+            }
+          } else if (profile.platform.toLowerCase() === "spoj") {
+            statsHtml = `
                             <div class="flex-1 text-center">
                                 <div class="text-3xl font-bold text-blue-400">${
                                   profile.data.problemsSolved || "N/A"
@@ -266,23 +280,23 @@
                                 <div class="text-sm text-gray-400">World Rank</div>
                             </div>
                         `;
-            } else if (profile.platform.toLowerCase() === "interviewbit") {
-              statsHtml = `
+          } else if (profile.platform.toLowerCase() === "interviewbit") {
+            statsHtml = `
                             <div class="flex-1 text-center">
                                 <div class="text-3xl font-bold text-blue-400">${
-                                  profile.data.problemsSolved || "N/A"
+                                  profile.data.score || "N/A"
                                 }</div>
                                 <div class="text-sm text-gray-400">Score</div>
                             </div>
                             <div class="flex-1 text-center">
                                 <div class="text-3xl font-bold text-blue-400">${
-                                  profile.data.contestRating || "N/A"
+                                  profile.data.rank || "N/A"
                                 }</div>
                                 <div class="text-sm text-gray-400">Rank</div>
                             </div>
                         `;
-            } else {
-              statsHtml = `
+          } else {
+            statsHtml = `
                             <div class="flex-1 text-center">
                                 <div class="text-3xl font-bold text-blue-400">${
                                   profile.data.problemsSolved || "N/A"
@@ -302,22 +316,6 @@
                                 <div class="text-sm text-gray-400">Contest Rating</div>
                             </div>
                         `;
-            }
-          } else {
-            statsHtml = `
-                        <div class="flex-1 text-center">
-                            <div class="text-3xl font-bold text-blue-400">--</div>
-                            <div class="text-sm text-gray-400">Loading...</div>
-                        </div>
-                        <div class="flex-1 text-center">
-                            <div class="text-3xl font-bold text-blue-400">--</div>
-                            <div class="text-sm text-gray-400">Loading...</div>
-                        </div>
-                        <div class="flex-1 text-center">
-                            <div class="text-3xl font-bold text-blue-400">--</div>
-                            <div class="text-sm text-gray-400">Loading...</div>
-                        </div>
-                    `;
           }
 
           card.innerHTML = `
@@ -459,11 +457,42 @@
           const username = usernameInput.value.trim();
 
           if (!username) {
-            alert("Please enter a username.");
+            // Replace with a more elegant solution than alert()
+            const authMsg = document.getElementById("auth-message");
+            authMsg.textContent = "Please enter a username.";
+            authMsg.classList.remove("hidden");
+            setTimeout(() => {
+              authMsg.classList.add("hidden");
+            }, 3000);
             return;
           }
 
           try {
+            // Temporarily render a loading state for the new profile card
+            const newProfileCard = document.createElement("div");
+            newProfileCard.classList.add(
+              "card",
+              "flex",
+              "flex-col",
+              "sm:flex-row",
+              "items-center",
+              "space-y-4",
+              "sm:space-y-0",
+              "sm:space-x-4"
+            );
+            newProfileCard.innerHTML = `
+              <div class="flex-shrink-0 w-full sm:w-auto text-center sm:text-left">
+                  <div class="text-xl font-semibold">${platform}</div>
+                  <div class="text-sm text-gray-400">Username: ${username}</div>
+              </div>
+              <div class="flex-1 flex w-full space-x-4">
+                  <div class="flex-1 flex justify-center items-center">
+                      <div class="spinner"></div>
+                  </div>
+              </div>
+            `;
+            profileList.appendChild(newProfileCard);
+
             const response = await fetch(`${API_BASE_URL}/profiles`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },

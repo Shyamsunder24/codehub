@@ -54,11 +54,7 @@ app.post("/api/login", (req, res) => {
   res.status(200).json({ message: "Login successful.", userId: username });
 });
 
-/**
- * API call handlers for each platform.
- * NOTE: These use third-party or unofficial APIs. Use with caution.
- */
-//fetch codeforces profile using official api
+//fetch codeforces profile using web scrapping official api
 const fetchCodeforcesProfile = async (username) => {
   try {
     // Get contests attended + rating
@@ -100,35 +96,7 @@ const fetchCodeforcesProfile = async (username) => {
   }
 };
 
-//fetch leetcode profile using unofficial api
-const fetchLeetCodeProfile = async (username) => {
-  try {
-    const response = await axios.get(
-      `https://leetcode-stats-api.herokuapp.com/${username}`
-    );
-    if (response.data.status === "success") {
-      return {
-        platform: "LeetCode",
-        username: username,
-        data: {
-          problemsSolved: response.data.totalSolved || "N/A",
-          contestsAttended: "N/A", // Unofficial API does not provide this
-          contestRating: "N/A", // Unofficial API does not provide this
-        },
-      };
-    }
-    return null;
-  } catch (error) {
-    console.error(
-      `Error fetching LeetCode profile for ${username}:`,
-      error.message
-    );
-    return null;
-  }
-};
-
 //fetch codechef profile using web scraping
-
 const fetchCodeChefProfile = async (username) => {
   try {
     const url = `https://www.codechef.com/users/${username}`;
@@ -181,30 +149,58 @@ const fetchCodeChefProfile = async (username) => {
   }
 };
 
-// const fetchHackerRankProfile = async (username) => {
-//   try {
-//     // This is a placeholder as HackerRank's API is not public for user profiles
-//     // A real solution would involve web scraping
-//     return {
-//       platform: "HackerRank",
-//       username: username,
-//       data: {
-//         problemsSolved: "N/A",
-//         contestsAttended: "N/A",
-//         contestRating: "N/A",
-//       },
-//     };
-//   } catch (error) {
-//     console.error(
-//       `Error fetching HackerRank profile for ${username}:`,
-//       error.message
-//     );
-//     return null;
-//   }
-// };
+//fetch leetcode profile using unofficial api
 
-//fetch spoj profile using unofficial api
+const fetchLeetCodeProfile = async (username) => {
+  try {
+    // This API provides a dedicated endpoint for contest details
+    const contestApiUrl = `https://alfa-leetcode-api.onrender.com/${username}/contest`;
+    const solvedApiUrl = `https://alfa-leetcode-api.onrender.com/${username}/solved`;
 
+    const [contestResponse, solvedResponse] = await Promise.all([
+      axios.get(contestApiUrl),
+      axios.get(solvedApiUrl),
+    ]);
+
+    const contestData = contestResponse.data;
+    const solvedData = solvedResponse.data;
+
+    const problemsSolved = solvedData.solvedProblem || "N/A";
+    const contestsAttended = contestData.contestAttend || "N/A";
+    let contestRating = contestData.contestRating || "N/A";
+
+    if (!isNaN(parseFloat(contestRating))) {
+      contestRating = Math.round(parseFloat(contestRating));
+    }
+
+    return {
+      platform: "LeetCode",
+      username: username,
+      data: {
+        problemsSolved,
+        contestsAttended,
+        contestRating,
+      },
+    };
+  } catch (error) {
+    console.error(
+      `Error fetching LeetCode profile for ${username}:`,
+      error.message
+    );
+    return {
+      platform: "LeetCode",
+      username,
+      data: {
+        status: "Failed",
+        problemsSolved: "N/A",
+        contestsAttended: "N/A",
+        contestRating: "N/A",
+      },
+    };
+  }
+};
+
+//fetch spoj profile using web scrapping
 const fetchSpojProfile = async (username) => {
   try {
     const url = `https://www.spoj.com/users/${username}/`;
@@ -214,26 +210,62 @@ const fetchSpojProfile = async (username) => {
 
     const $ = cheerio.load(html);
 
-    // Updated: Problems Solved
-    let problemsSolved = $("h5:contains('Problems solved')")
-      .next("section")
-      .find("a").length;
-    if (!problemsSolved) problemsSolved = "N/A";
+    let joinDate = "N/A",
+      worldRank = "N/A",
+      points = "N/A",
+      institute = "N/A";
 
-    // Updated: Global Rank (World Rank)
-    let worldRank = $("h5:contains('Rank')").next("section").text().trim();
-    if (!worldRank) worldRank = "N/A";
+    // Find elements by matching start of text
+    $("body")
+      .find("*")
+      .each((i, el) => {
+        const text = $(el).text().trim();
 
-    // Contest Rating (SPOJ doesn't provide this)
-    const contestRating = "N/A";
+        if (text.startsWith("Joined")) {
+          joinDate = text.replace("Joined", "").trim();
+        } else if (text.startsWith("World Rank:")) {
+          // Format: World Rank: #3 (2176.9 points)
+          const match = text.match(/#(\d+)\s*\(([\d.]+)\s*points\)/);
+          if (match) {
+            worldRank = match[1];
+            points = match[2];
+          }
+        } else if (text.startsWith("Institution:")) {
+          institute = text.replace("Institution:", "").trim();
+        }
+      });
+
+    // Solved problems (first .table-condensed)
+    const solvedProblems = [];
+    $("#user-profile-tables .table-condensed")
+      .first()
+      .find("td a")
+      .each((_, el) => {
+        const code = $(el).text().trim();
+        if (code) solvedProblems.push(code);
+      });
+
+    // To-do problems (second .table)
+    const todoProblems = [];
+    const todoTable = $("#user-profile-tables .table").eq(1);
+    if (todoTable.length) {
+      todoTable.find("td a").each((_, el) => {
+        const code = $(el).text().trim();
+        if (code) todoProblems.push(code);
+      });
+    }
 
     return {
       platform: "SPOJ",
       username,
       data: {
-        problemsSolved,
-        contestsAttended: worldRank,
-        contestRating,
+        status: "Success",
+        joinDate,
+        rank: worldRank,
+        points,
+        institute,
+        solvedProblems,
+        todoProblems,
       },
     };
   } catch (error) {
@@ -245,38 +277,94 @@ const fetchSpojProfile = async (username) => {
       platform: "SPOJ",
       username,
       data: {
-        problemsSolved: "N/A",
-        contestsAttended: "N/A",
-        contestRating: "N/A",
+        status: "Failed",
+        joinDate: "N/A",
+        rank: "N/A",
+        points: "N/A",
+        institute: "N/A",
+        solvedProblems: [],
+        todoProblems: [],
       },
     };
   }
 };
 
+//fetch interviewbit profile
 const fetchInterviewBitProfile = async (username) => {
   try {
-    const response = await axios.get(
-      `https://competitive-coding-api.herokuapp.com/api/interviewbit/${username}`
-    );
-    if (response.data && !response.data.error) {
-      return {
-        platform: "InterviewBit",
-        username: username,
-        data: {
-          problemsSolved: "N/A", // InterviewBit API does not provide this data
-          contestsAttended: "N/A", // InterviewBit API does not provide this data
-          contestRating: response.data.rank || "N/A",
-        },
-      };
-    }
-    return null;
+    const url = `https://www.interviewbit.com/profile/${username}`;
+    const { data: html } = await axios.get(url, {
+      headers: { "User-Agent": "Mozilla/5.0" },
+    });
+
+    const $ = cheerio.load(html);
+
+    // Locate the "My Stats" section
+    const myStatsSection = $("h2")
+      .filter((i, el) => $(el).text().trim() === "My Stats")
+      .parent();
+
+    // Scrape data from the stats table
+    const stats = {};
+    myStatsSection.find(".profile-overview-stat-table__item").each((i, el) => {
+      const key = $(el)
+        .find(".profile-overview-stat-table__item-key")
+        .text()
+        .trim();
+      const value = $(el)
+        .find(".profile-overview-stat-table__item-value")
+        .text()
+        .trim();
+      if (key && value) {
+        stats[key] = value;
+      }
+    });
+
+    const globalRank = stats["Global Rank"] || "N/A";
+    const problemsSolved = stats["Total Problems Solved"] || "N/A";
+
+    return {
+      platform: "InterviewBit",
+      username,
+      data: {
+        status: "Success",
+        rank: globalRank,
+        score: problemsSolved, // Mapped to 'score' for consistent front-end rendering
+        universityRank: stats["University Rank"] || "N/A",
+        timeSpent: stats["Time Spent"] || "N/A",
+      },
+    };
   } catch (error) {
     console.error(
       `Error fetching InterviewBit profile for ${username}:`,
       error.message
     );
-    return null;
+    return {
+      platform: "InterviewBit",
+      username,
+      data: {
+        status: "Failed",
+        rank: "N/A",
+        score: "N/A",
+        universityRank: "N/A",
+        timeSpent: "N/A",
+      },
+    };
   }
+};
+
+const fetchHackerRankProfile = async (username) => {
+  console.log(`Fetching HackerRank profile for ${username}...`);
+  return {
+    platform: "HackerRank",
+    username,
+    data: {
+      status: "Success",
+      problemsSolved: "N/A",
+      contestsAttended: "N/A",
+      contestRating: "N/A",
+    },
+  };
 };
 
 // --- API Endpoint: Get Profile Data for a User ---
@@ -300,6 +388,12 @@ app.get("/api/profiles/:userId", async (req, res) => {
           break;
         case "codechef":
           fetchedData = await fetchCodeChefProfile(profile.username);
+          break;
+        case "spoj":
+          fetchedData = await fetchSpojProfile(profile.username);
+          break;
+        case "interviewbit":
+          fetchedData = await fetchInterviewBitProfile(profile.username);
           break;
         case "hackerrank":
           // Placeholder fetch call
