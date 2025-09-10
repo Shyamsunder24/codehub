@@ -3,7 +3,7 @@ Coding Profile Tracker
 This is a full-stack web application that allows you to track your coding profiles from multiple platforms in one place. It includes user authentication, profile tracking, and a global ranking system.
 
 Features
-User Authentication: Secure login and registration using Firebase Authentication.
+User Authentication: Secure login and registration .
 
 Profile Tracking: Add and view your profiles from LeetCode, CodeChef, Codeforces, SPOJ, and InterviewBit.
 
@@ -14,7 +14,7 @@ Frontend: HTML, Tailwind CSS, JavaScript
 
 Backend: Node.js, Express
 
-Database: Firebase Firestore
+Database: 
 
 How to Run the Project Locally
 1. Clone the Repository
